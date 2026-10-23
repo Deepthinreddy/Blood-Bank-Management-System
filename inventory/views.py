@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from .forms import DonationForm
 from .models import BloodInventory
@@ -57,7 +58,7 @@ def donation_create(request):
                 messages.error(
                     request,
                     "The donation could not be saved because a database "
-                    "constraint was violated. Please check the records."
+                    "constraint was violated. Please check the records.",
                 )
 
     else:
@@ -67,4 +68,20 @@ def donation_create(request):
         request,
         "inventory/donation_form.html",
         {"form": form},
+    )
+
+
+def inventory_list(request):
+    today = timezone.localdate()
+
+    inventory = BloodInventory.objects.filter(
+        status="Available",
+        available_ml__gt=0,
+        expiry_date__gte=today,
+    ).order_by("blood_group", "expiry_date")
+
+    return render(
+        request,
+        "inventory/inventory_list.html",
+        {"inventory": inventory},
     )
