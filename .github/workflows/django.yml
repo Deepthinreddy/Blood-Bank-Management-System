@@ -30,3 +30,4 @@ jobs:
 
       - name: Check Django configuration
         run: python manage.py check
+        
