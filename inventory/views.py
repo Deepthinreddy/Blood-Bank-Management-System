@@ -1,8 +1,12 @@
 
+from datetime import timedelta
+
 from django.contrib import messages
+from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 
 from .forms import DonationForm
+from .models import BloodInventory
 
 
 def donation_create(request):
@@ -10,9 +14,52 @@ def donation_create(request):
         form = DonationForm(request.POST)
 
         if form.is_valid():
-            form.save()
-            messages.success(request, "Blood donation recorded successfully.")
-            return redirect("donation_create")
+            donation = form.save(commit=False)
+
+            try:
+                with transaction.atomic():
+                    donation.save()
+
+                    eligible = (
+                        donation.screening_status == "Passed"
+                        and donation.donation_status == "Accepted"
+                    )
+
+                    if eligible:
+                        collection_date = donation.donation_date.date()
+
+                        BloodInventory.objects.create(
+                            donation=donation,
+                            blood_group=donation.blood_group,
+                            quantity_ml=donation.quantity_ml,
+                            available_ml=donation.quantity_ml,
+                            collection_date=collection_date,
+                            expiry_date=collection_date + timedelta(days=42),
+                            status="Available",
+                            storage_location="Main Storage",
+                        )
+
+                if eligible:
+                    messages.success(
+                        request,
+                        "Donation recorded and blood inventory updated successfully.",
+                    )
+                else:
+                    messages.success(
+                        request,
+                        "Donation recorded. Inventory was not updated because "
+                        "screening or acceptance requirements were not met.",
+                    )
+
+                return redirect("donation_create")
+
+            except IntegrityError:
+                messages.error(
+                    request,
+                    "The donation could not be saved because a database "
+                    "constraint was violated. Please check the records."
+                )
+
     else:
         form = DonationForm()
 
