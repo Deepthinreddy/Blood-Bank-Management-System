@@ -1,0 +1,16 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BBMS Admin Dashboard</title>
+</head>
+<body>
+<p>Username: {{ request.user.username }}</p>
+<p>Role: {{ request.user.role }}</p>
+
+<form method="post" action="/accounts/logout/">
+    {% csrf_token %}
+    <button type="submit">Logout</button>
+</form>>
+</html>
