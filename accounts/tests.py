@@ -21,7 +21,22 @@ class AdminDashboardTests(TestCase):
             role="STAFF",
             is_active=True,
         )
+    def test_logout_redirects_to_login(self):
+        self.client.force_login(self.admin_user)
 
+        response = self.client.post(
+            reverse("logout")
+        )
+
+        self.assertRedirects(
+            response,
+            "/accounts/login/",
+        )
+
+        self.assertNotIn(
+            "_auth_user_id",
+            self.client.session,
+        )
     def test_admin_can_access_dashboard(self):
         self.client.force_login(self.admin_user)
 
@@ -50,3 +65,22 @@ class AdminDashboardTests(TestCase):
             "/accounts/login/?next=/accounts/admin-dashboard/",
         )
 
+from django.conf import settings
+from django.test import SimpleTestCase
+
+
+class SessionSettingsTests(SimpleTestCase):
+    def test_session_cookie_age_is_30_minutes(self):
+        self.assertEqual(settings.SESSION_COOKIE_AGE, 1800)
+
+    def test_session_expires_when_browser_closes(self):
+        self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
+
+    def test_session_is_saved_on_each_request(self):
+        self.assertTrue(settings.SESSION_SAVE_EVERY_REQUEST)
+    def test_session_expiry_is_configured(self):
+        self.assertEqual(
+            settings.SESSION_COOKIE_AGE,
+            30 * 60,
+        )
+   
