@@ -1,0 +1,97 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Available Blood Inventory | BBMS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 30px;
+            background: #f4f6f9;
+            color: #222;
+        }
+        main {
+            max-width: 1100px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+        }
+        h1 { color: #a61b29; }
+        .actions { margin: 18px 0; }
+        a {
+            color: #a61b29;
+            margin-right: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #a61b29;
+            color: white;
+        }
+        tr:nth-child(even) { background: #f8f8f8; }
+        .empty {
+            padding: 20px;
+            background: #fff4e5;
+            border-radius: 6px;
+        }
+        @media (max-width: 700px) {
+            body { padding: 10px; }
+            main { padding: 12px; overflow-x: auto; }
+            table { min-width: 700px; }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Available Blood Inventory</h1>
+    <p>View blood units currently marked available and not expired.</p>
+
+    <div class="actions">
+        <a href="{% url 'donation_create' %}">Record a Donation</a>
+    </div>
+
+    {% if inventory %}
+    <table>
+        <thead>
+            <tr>
+                <th>Inventory ID</th>
+                <th>Blood Group</th>
+                <th>Available (ml)</th>
+                <th>Collected On</th>
+                <th>Expiry Date</th>
+                <th>Status</th>
+                <th>Storage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory %}
+            <tr>
+                <td>{{ item.inventory_id }}</td>
+                <td>{{ item.blood_group }}</td>
+                <td>{{ item.available_ml }}</td>
+                <td>{{ item.collection_date|date:"d M Y" }}</td>
+                <td>{{ item.expiry_date|date:"d M Y" }}</td>
+                <td>{{ item.status }}</td>
+                <td>{{ item.storage_location|default:"Not specified" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p class="empty">No unexpired blood inventory is currently available.</p>
+    {% endif %}
+</main>
+</body>
+</html>
