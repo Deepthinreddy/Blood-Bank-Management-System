@@ -10,6 +10,18 @@ on:
     branches:
       - main
 
+name: Django CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/blood-inventory
+      - feature/blood-request
+  pull_request:
+    branches:
+      - main
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -21,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
@@ -30,4 +42,5 @@ jobs:
 
       - name: Check Django configuration
         run: python manage.py check
+
         

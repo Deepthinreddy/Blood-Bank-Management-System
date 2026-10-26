@@ -54,3 +54,40 @@ The Blood Bank Management System (BBMS) is a web-based application designed to c
 
 Each team member is responsible for developing and maintaining their assigned module in a separate Git branch before integration into the main project.
 
+## Technology Stack
+
+- Frontend: HTML, CSS, JavaScript
+- Backend: Python / Django
+- Database: MySQL / PostgreSQL
+- Version Control: Git & GitHub
+
+## Security
+
+The system follows security requirements including:
+
+- HTTPS/TLS for protected communication
+- Secure password hashing
+- Role-Based Access Control (RBAC)
+- Input validation and safe database operations
+- Audit logging of significant administrative and operational actions
+
+## Non-Functional Requirements
+
+The system is designed with the following requirements:
+
+- Common dashboard and search operations should respond within 2 seconds for 90% of requests under the defined project test load
+- Target availability of at least 99% during planned operational periods
+- Responsive and understandable interfaces on supported modern browsers
+- Consistent and recoverable records during validation or transaction errors
+- Modular and maintainable code structure
+
+## Project Documentation
+
+- Software Requirements Specification (SRS)
+- UML Use-Case Diagrams
+- Requirements Traceability Matrix (RTM)
+- Test Cases and Acceptance Tests
+
+## Project Status
+
+🚧 Currently under development.
