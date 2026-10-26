@@ -76,8 +76,9 @@ class SessionSettingsTests(SimpleTestCase):
     def test_session_expires_when_browser_closes(self):
         self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
 
-    def test_session_is_saved_on_each_request(self):
-        self.assertTrue(settings.SESSION_SAVE_EVERY_REQUEST)
+    def test_session_is_not_saved_on_every_request(self):
+     self.assertFalse(settings.SESSION_SAVE_EVERY_REQUEST)
+     
     def test_session_expiry_is_configured(self):
         self.assertEqual(
             settings.SESSION_COOKIE_AGE,
