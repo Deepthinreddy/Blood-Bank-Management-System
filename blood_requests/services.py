@@ -120,3 +120,30 @@ def issue_blood(allocation_id, issued_by):
         blood_request.save(update_fields=["status"])
 
     return issue
+class RequestProcessingError(Exception):
+    """Raised when a blood request cannot be processed."""
+
+
+@transaction.atomic
+def process_blood_request(request_id, decision):
+    if decision not in (
+        BloodRequest.Status.APPROVED,
+        BloodRequest.Status.REJECTED,
+    ):
+        raise RequestProcessingError(
+            "Decision must be APPROVED or REJECTED."
+        )
+
+    blood_request = BloodRequest.objects.select_for_update().get(
+        pk=request_id
+    )
+
+    if blood_request.status != BloodRequest.Status.PENDING:
+        raise RequestProcessingError(
+            "Only pending blood requests can be processed."
+        )
+
+    blood_request.status = decision
+    blood_request.save(update_fields=["status"])
+
+    return blood_request

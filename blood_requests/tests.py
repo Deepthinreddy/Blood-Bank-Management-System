@@ -12,7 +12,14 @@ from django.utils import timezone
 
 from . import services
 from .models import BloodAllocation, BloodIssue, BloodRequest, BloodUnit
-from .services import AllocationError, IssueError, allocate_blood, issue_blood
+from .services import (
+    AllocationError,
+    IssueError,
+    RequestProcessingError,
+    allocate_blood,
+    issue_blood,
+    process_blood_request,
+)
 
 
 class BloodWorkflowTests(TestCase):
@@ -239,3 +246,42 @@ class BloodWorkflowTests(TestCase):
             self.request.status, BloodRequest.Status.ALLOCATED
         )
         self.assertEqual(BloodIssue.objects.count(), 0)
+    def test_staff_can_approve_pending_request(self):
+        self.request.status = BloodRequest.Status.PENDING
+        self.request.save(update_fields=["status"])
+
+        result = process_blood_request(
+            self.request.id, BloodRequest.Status.APPROVED
+        )
+
+        self.assertEqual(result.status, BloodRequest.Status.APPROVED)
+
+    def test_staff_can_reject_pending_request(self):
+        self.request.status = BloodRequest.Status.PENDING
+        self.request.save(update_fields=["status"])
+
+        result = process_blood_request(
+            self.request.id, BloodRequest.Status.REJECTED
+        )
+
+        self.assertEqual(result.status, BloodRequest.Status.REJECTED)
+
+    def test_already_processed_request_cannot_be_processed_again(self):
+        self.request.status = BloodRequest.Status.PENDING
+        self.request.save(update_fields=["status"])
+
+        process_blood_request(
+            self.request.id, BloodRequest.Status.APPROVED
+        )
+
+        with self.assertRaises(RequestProcessingError):
+            process_blood_request(
+                self.request.id, BloodRequest.Status.REJECTED
+            )
+
+    def test_invalid_processing_decision_is_rejected(self):
+        self.request.status = BloodRequest.Status.PENDING
+        self.request.save(update_fields=["status"])
+
+        with self.assertRaises(RequestProcessingError):
+            process_blood_request(self.request.id, "ALLOCATED")
