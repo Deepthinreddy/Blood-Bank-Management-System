@@ -2,6 +2,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -70,18 +71,15 @@ from django.test import SimpleTestCase
 
 
 class SessionSettingsTests(SimpleTestCase):
+ 
     def test_session_cookie_age_is_30_minutes(self):
         self.assertEqual(settings.SESSION_COOKIE_AGE, 1800)
 
     def test_session_expires_when_browser_closes(self):
         self.assertTrue(settings.SESSION_EXPIRE_AT_BROWSER_CLOSE)
 
-    def test_session_is_not_saved_on_every_request(self):
-     self.assertFalse(settings.SESSION_SAVE_EVERY_REQUEST)
-     
+    def test_session_is_saved_on_every_request(self):
+        self.assertTrue(settings.SESSION_SAVE_EVERY_REQUEST)
+
     def test_session_expiry_is_configured(self):
-        self.assertEqual(
-            settings.SESSION_COOKIE_AGE,
-            30 * 60,
-        )
-   
+        self.assertEqual(settings.SESSION_COOKIE_AGE, 30 * 60)
