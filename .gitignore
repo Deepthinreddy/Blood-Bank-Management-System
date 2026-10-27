@@ -1,5 +1,24 @@
+# Python virtual environments
 .venv/
+venv/
+env/
+
+# Python cache files
 __pycache__/
 *.py[cod]
+
+# Local databases
 db.sqlite3
+
+# Environment variables and secrets
 .env
+.env.*
+
+# Django-generated files
+staticfiles/
+media/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
