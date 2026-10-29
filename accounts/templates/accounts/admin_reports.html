@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BBMS Admin Reports</title>
+</head>
+<body>
+    <h1>Blood Bank Management System - Admin Reports</h1>
+
+    <p><strong>Total registered users:</strong> {{ total_users }}</p>
+    <p><strong>Total registered donors:</strong> {{ total_donors }}</p>
+
+    <h2>Donors by Blood Group</h2>
+    {% if donors_by_blood_group %}
+        <table border="1" cellpadding="8">
+            <thead>
+                <tr>
+                    <th>Blood Group</th>
+                    <th>Number of Donors</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in donors_by_blood_group %}
+                    <tr>
+                        <td>{{ item.blood_group }}</td>
+                        <td>{{ item.total }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No donor records found.</p>
+    {% endif %}
+
+    <h2>10 Most Recently Registered Donors</h2>
+    {% if recent_donors %}
+        <table border="1" cellpadding="8">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Blood Group</th>
+                    <th>Registration Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for donor in recent_donors %}
+                    <tr>
+                        <td>{{ donor.full_name }}</td>
+                        <td>{{ donor.blood_group }}</td>
+                        <td>{{ donor.created_at|date:"d M Y, H:i" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No donor records found.</p>
+    {% endif %}
+
+    <p><a href="{% url 'admin_dashboard' %}">Back to Dashboard</a></p>
+</body>
+</html>

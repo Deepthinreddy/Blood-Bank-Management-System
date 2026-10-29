@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "accounts",
+    "accounts.apps.AccountsConfig",
     "blood_requests",
     "donors",
 ]
@@ -38,6 +38,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "accounts.middleware.SessionInactivityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -100,5 +101,6 @@ LOGOUT_REDIRECT_URL = "/accounts/login/"
 SESSION_COOKIE_AGE = 1800
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
+SESSION_INACTIVITY_TIMEOUT = 1800
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
