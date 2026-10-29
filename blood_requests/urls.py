@@ -1,7 +1,12 @@
 
 from django.urls import path
 
-from .views import allocate_request, issue_allocation, process_request
+from .views import (
+    allocate_request,
+    issue_allocation,
+    process_request,
+    register_recipient,
+)
 
 urlpatterns = [
     path(
@@ -15,8 +20,13 @@ urlpatterns = [
         name="issue-allocation",
     ),
     path(
-    "requests/<int:request_id>/process/",
-    process_request,
-    name="process-request",
+        "requests/<int:request_id>/process/",
+        process_request,
+        name="process-request",
+    ),
+    path(
+        "recipients/register/",
+        register_recipient,
+        name="register-recipient",
     ),
 ]

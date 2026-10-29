@@ -20,6 +20,13 @@ from .services import (
     issue_blood,
     process_blood_request,
 )
+from .models import (
+    BloodAllocation,
+    BloodIssue,
+    BloodRequest,
+    BloodUnit,
+    Recipient,
+)
 
 
 class BloodWorkflowTests(TestCase):
@@ -285,3 +292,97 @@ class BloodWorkflowTests(TestCase):
 
         with self.assertRaises(RequestProcessingError):
             process_blood_request(self.request.id, "ALLOCATED")
+    def test_staff_can_register_recipient(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        response = client.post(
+            "/api/recipients/register/",
+            {
+                "full_name": "Test Recipient",
+                "identification_number": "TEST-001",
+                "contact_number": "9876543210",
+                "blood_group": "A+",
+                "notes": "Urgent request",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Recipient.objects.count(), 1)
+        self.assertEqual(
+            Recipient.objects.get().full_name,
+            "Test Recipient",
+        )
+
+    def test_recipient_registration_requires_authentication(self):
+        client = APIClient()
+
+        response = client.post(
+            "/api/recipients/register/",
+            {},
+            format="json",
+        )
+
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_non_staff_cannot_register_recipient(self):
+        user = get_user_model().objects.create_user(
+            username="ordinaryuser",
+            password="test-password",
+            is_staff=False,
+        )
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            "/api/recipients/register/",
+            {
+                "full_name": "Test Recipient",
+                "identification_number": "TEST-002",
+                "contact_number": "9876543210",
+                "blood_group": "A+",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Recipient.objects.count(), 0)
+
+    def test_recipient_registration_rejects_missing_fields(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        response = client.post(
+            "/api/recipients/register/",
+            {"full_name": "Test Recipient"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Recipient.objects.count(), 0)
+
+    def test_duplicate_recipient_identification_is_rejected(self):
+        Recipient.objects.create(
+            full_name="First Recipient",
+            identification_number="TEST-003",
+            contact_number="9876543210",
+            blood_group="A+",
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        response = client.post(
+            "/api/recipients/register/",
+            {
+                "full_name": "Second Recipient",
+                "identification_number": "TEST-003",
+                "contact_number": "9876543211",
+                "blood_group": "B+",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Recipient.objects.count(), 1)
