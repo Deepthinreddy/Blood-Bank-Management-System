@@ -13,6 +13,7 @@ class BloodRequest(models.Model):
         ALLOCATED = "ALLOCATED", "Allocated"
         FULFILLED = "FULFILLED", "Fulfilled"
         REJECTED = "REJECTED", "Rejected"
+        CANCELLED = "CANCELLED", "Cancelled"
 
     recipient_name = models.CharField(max_length=150)
     blood_group = models.CharField(max_length=3)
