@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import Donor
+from .models import Donor, Donation
 
 
 class DonorRegistrationTests(TestCase):
@@ -228,3 +228,116 @@ class DonorRegistrationTests(TestCase):
         response = self.client.get(self.list_url)
 
         self.assertEqual(response.status_code, 403)
+
+    # --------------------------------------------------
+    # DONATION HISTORY TESTS
+    # --------------------------------------------------
+
+    def test_staff_can_record_donation(self):
+        self.client.post(
+            self.url,
+            self.valid_payload,
+            format="json",
+        )
+        donor = Donor.objects.get()
+
+        response = self.client.post(
+            f"/api/donors/{donor.id}/donations/",
+            {
+                "donation_date": date.today().isoformat(),
+                "quantity_ml": 450,
+                "notes": "First blood donation",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Donation.objects.count(), 1)
+        self.assertEqual(
+            Donation.objects.get().quantity_ml,
+            450,
+        )
+
+    def test_staff_can_retrieve_donation_history(self):
+        self.client.post(
+            self.url,
+            self.valid_payload,
+            format="json",
+        )
+        donor = Donor.objects.get()
+
+        Donation.objects.create(
+            donor=donor,
+            donation_date=date.today(),
+            quantity_ml=450,
+            notes="First donation",
+        )
+
+        response = self.client.get(
+            f"/api/donors/{donor.id}/donations/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0]["quantity_ml"],
+            450,
+        )
+        self.assertEqual(
+            response.data[0]["donor_name"],
+            "Asha Rao",
+        )
+
+    def test_future_donation_date_is_rejected(self):
+        self.client.post(
+            self.url,
+            self.valid_payload,
+            format="json",
+        )
+        donor = Donor.objects.get()
+
+        future_date = (
+            date.today() + timedelta(days=1)
+        ).isoformat()
+
+        response = self.client.post(
+            f"/api/donors/{donor.id}/donations/",
+            {
+                "donation_date": future_date,
+                "quantity_ml": 450,
+                "notes": "Invalid future donation",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("donation_date", response.data)
+        self.assertEqual(Donation.objects.count(), 0)
+
+    def test_non_staff_cannot_access_donation_history(self):
+        self.client.post(
+            self.url,
+            self.valid_payload,
+            format="json",
+        )
+        donor = Donor.objects.get()
+
+        user = get_user_model().objects.create_user(
+            username="donation_regular_user",
+            password="test-password",
+            is_staff=False,
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get(
+            f"/api/donors/{donor.id}/donations/"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_missing_donor_donation_history_returns_404(self):
+        response = self.client.get(
+            "/api/donors/99999/donations/"
+        )
+
+        self.assertEqual(response.status_code, 404)

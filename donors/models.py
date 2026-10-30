@@ -25,3 +25,24 @@ class Donor(models.Model):
 
     def __str__(self):
         return f"{self.full_name} ({self.blood_group})"
+
+
+class Donation(models.Model):
+    donor = models.ForeignKey(
+        Donor,
+        on_delete=models.PROTECT,
+        related_name="donations",
+    )
+    donation_date = models.DateField()
+    quantity_ml = models.PositiveIntegerField()
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-donation_date", "-id"]
+
+    def __str__(self):
+        return (
+            f"Donation by {self.donor.full_name} "
+            f"on {self.donation_date}"
+        )
