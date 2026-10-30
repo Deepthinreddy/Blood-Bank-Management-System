@@ -1,3 +1,5 @@
+from .models import Donor, Donation
+from .serializers import DonorRegistrationSerializer, DonationSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -120,3 +122,45 @@ def update_donor(request, donor_id):
         )
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def donor_donation_history(request, donor_id):
+    """Retrieve a donor's donation history or record a new donation."""
+
+    if not staff_authorized(request.user):
+        return Response(
+            {"detail": "Staff authorization required."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        donor = Donor.objects.get(pk=donor_id)
+    except Donor.DoesNotExist:
+        return Response(
+            {"detail": "Donor not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Retrieve the donor's donation history
+    if request.method == "GET":
+        donations = Donation.objects.filter(donor=donor)
+        serializer = DonationSerializer(donations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # Record a new donation
+    payload = request.data.copy()
+    payload["donor"] = donor.pk
+
+    serializer = DonationSerializer(data=payload)
+
+    if serializer.is_valid():
+        donation = serializer.save()
+        return Response(
+            DonationSerializer(donation).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST,
+    )
