@@ -3,6 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 
 from django.core.exceptions import ObjectDoesNotExist
+from .models import BloodRequest
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -110,6 +111,34 @@ def process_request(request, request_id):
         {
             "request_id": blood_request.id,
             "status": blood_request.status,
+        },
+        status=status.HTTP_200_OK,
+    )
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def track_request_status(request, request_id):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return Response(
+            {"detail": "Staff authorization required."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        blood_request = BloodRequest.objects.get(id=request_id)
+    except BloodRequest.DoesNotExist:
+        return Response(
+            {"detail": "Blood request not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return Response(
+        {
+            "request_id": blood_request.id,
+            "recipient_name": blood_request.recipient_name,
+            "blood_group": blood_request.blood_group,
+            "units_requested": blood_request.units_requested,
+            "status": blood_request.status,
+            "created_at": blood_request.created_at.isoformat(),
         },
         status=status.HTTP_200_OK,
     )

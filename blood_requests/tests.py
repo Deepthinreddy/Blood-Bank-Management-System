@@ -285,3 +285,61 @@ class BloodWorkflowTests(TestCase):
 
         with self.assertRaises(RequestProcessingError):
             process_blood_request(self.request.id, "ALLOCATED")
+
+    def test_staff_can_track_all_six_request_statuses(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        statuses = [
+            BloodRequest.Status.PENDING,
+            BloodRequest.Status.APPROVED,
+            BloodRequest.Status.REJECTED,
+            BloodRequest.Status.ALLOCATED,
+            BloodRequest.Status.FULFILLED,
+            BloodRequest.Status.CANCELLED,
+        ]
+
+        for request_status in statuses:
+            self.request.status = request_status
+            self.request.save(update_fields=["status"])
+
+            response = client.get(
+                f"/api/requests/{self.request.id}/status/"
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data["status"], request_status)
+            self.assertEqual(response.data["request_id"], self.request.id)
+
+    def test_non_staff_cannot_track_request_status(self):
+        user = get_user_model().objects.create_user(
+            username="ordinarytracker",
+            password="test-password",
+            is_staff=False,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.get(
+            f"/api/requests/{self.request.id}/status/"
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_anonymous_user_cannot_track_request_status(self):
+        client = APIClient()
+
+        response = client.get(
+            f"/api/requests/{self.request.id}/status/"
+        )
+
+        self.assertIn(response.status_code, (401, 403))
+
+    def test_tracking_nonexistent_request_returns_404(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        response = client.get("/api/requests/99999/status/")
+
+        self.assertEqual(response.status_code, 404)
