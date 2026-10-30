@@ -3,8 +3,9 @@ from django.shortcuts import render
 # Create your views here.
 
 from django.core.exceptions import ObjectDoesNotExist
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.decorators import api_view, permission_classes
+from .serializers import BloodRequestSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -112,4 +113,26 @@ def process_request(request, request_id):
             "status": blood_request.status,
         },
         status=status.HTTP_200_OK,
+    )
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_blood_request(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return Response(
+            {"detail": "Staff authorization required."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = BloodRequestSerializer(data=request.data)
+
+    if serializer.is_valid():
+        blood_request = serializer.save()
+        return Response(
+            BloodRequestSerializer(blood_request).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST,
     )
