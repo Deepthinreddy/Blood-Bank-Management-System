@@ -8,6 +8,7 @@ from config.health import health_check
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("", include("inventory.urls")),
     path("accounts/", include("accounts.urls")),
     path("api/", include("blood_requests.urls")),
     path("api/", include("donors.urls")),

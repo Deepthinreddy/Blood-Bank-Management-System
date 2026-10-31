@@ -29,10 +29,10 @@ class Donor(models.Model):
 
 class Donation(models.Model):
     donor = models.ForeignKey(
-        Donor,
-        on_delete=models.PROTECT,
-        related_name="donations",
-    )
+    Donor,
+    on_delete=models.PROTECT,
+    related_name="donation_history_records",
+)
     donation_date = models.DateField()
     quantity_ml = models.PositiveIntegerField()
     notes = models.TextField(blank=True)
