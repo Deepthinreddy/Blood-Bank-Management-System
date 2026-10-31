@@ -285,3 +285,32 @@ class BloodWorkflowTests(TestCase):
 
         with self.assertRaises(RequestProcessingError):
             process_blood_request(self.request.id, "ALLOCATED")
+
+    def test_request_processing_failure_rolls_back_status(self):
+        self.request.status = BloodRequest.Status.PENDING
+        self.request.save(update_fields=["status"])
+
+        original_save = BloodRequest.save
+
+        def save_then_fail(instance, *args, **kwargs):
+            original_save(instance, *args, **kwargs)
+            raise RuntimeError("Simulated processing failure")
+
+        with patch.object(
+            BloodRequest,
+            "save",
+            autospec=True,
+            side_effect=save_then_fail,
+        ):
+            with self.assertRaises(RuntimeError):
+                process_blood_request(
+                    self.request.id,
+                    BloodRequest.Status.APPROVED,
+                )
+
+        self.request.refresh_from_db()
+
+        self.assertEqual(
+            self.request.status,
+            BloodRequest.Status.PENDING,
+        )
