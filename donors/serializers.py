@@ -2,7 +2,7 @@ from datetime import date
 
 from rest_framework import serializers
 
-from .models import Donor
+from .models import Donor, Donation
 
 
 class DonorRegistrationSerializer(serializers.ModelSerializer):
@@ -37,5 +37,46 @@ class DonorRegistrationSerializer(serializers.ModelSerializer):
 
     def validate_date_of_birth(self, value):
         if value > date.today():
-            raise serializers.ValidationError("Date of birth cannot be in the future.")
+            raise serializers.ValidationError(
+                "Date of birth cannot be in the future."
+            )
+        return value
+
+
+class DonationSerializer(serializers.ModelSerializer):
+    donor_name = serializers.CharField(
+        source="donor.full_name",
+        read_only=True,
+    )
+    blood_group = serializers.CharField(
+        source="donor.blood_group",
+        read_only=True,
+    )
+
+    class Meta:
+        model = Donation
+        fields = [
+            "id",
+            "donor",
+            "donor_name",
+            "blood_group",
+            "donation_date",
+            "quantity_ml",
+            "notes",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def validate_donation_date(self, value):
+        if value > date.today():
+            raise serializers.ValidationError(
+                "Donation date cannot be in the future."
+            )
+        return value
+
+    def validate_quantity_ml(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                "Donation quantity must be greater than zero."
+            )
         return value

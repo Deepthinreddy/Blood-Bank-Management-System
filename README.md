@@ -47,10 +47,10 @@ The Blood Bank Management System (BBMS) is a web-based application designed to c
 
 | Team Member | SRN | Module / Responsibility |
 |---|---|---|
-| `C Rohit Reddy` | `PES2UG24CS125` | Donor Management |
+| `C Rohit Reddy` | `PES2UG24CS125` | Admin & Authentication Management |
 | `Hansika R` | `PES2UG24CS178` | Blood Donation & Inventory Management |
 | `Gurudu Guru Preetam` | `PES2UG24CS174` | Recipient & Blood Request Management |
-| `Deepthi N Reddy` | `PES2UG24CS149` | Admin & Authentication Management |
+| `Deepthi N Reddy` | `PES2UG24CS149` | Donor Management |
 
 Each team member is responsible for developing and maintaining their assigned module in a separate Git branch before integration into the main project.
 
