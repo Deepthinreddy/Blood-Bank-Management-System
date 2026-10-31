@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "accounts",
     "blood_requests",
     "donors",
+    "inventory.apps.InventoryConfig",
 ]
 
 MIDDLEWARE = [
