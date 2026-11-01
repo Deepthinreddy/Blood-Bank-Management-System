@@ -6,6 +6,7 @@ from .views import (
     donor_detail,
     update_donor,
     donor_donation_history,
+    donor_eligibility,
 )
 
 urlpatterns = [
@@ -17,5 +18,10 @@ urlpatterns = [
         "donors/<int:donor_id>/donations/",
         donor_donation_history,
         name="donor-donation-history",
+    ),
+    path(
+        "donors/<int:donor_id>/eligibility/",
+        donor_eligibility,
+        name="donor-eligibility",
     ),
 ]

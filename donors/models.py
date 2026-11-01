@@ -17,7 +17,23 @@ class Donor(models.Model):
     phone_number = models.CharField(max_length=20)
     email = models.EmailField()
     address = models.CharField(max_length=300)
-    blood_group = models.CharField(max_length=3, choices=BloodGroup.choices)
+    blood_group = models.CharField(
+        max_length=3,
+        choices=BloodGroup.choices,
+    )
+
+    # Donor eligibility information
+    is_eligible = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+    )
+    eligibility_checked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    eligibility_notes = models.TextField(blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
