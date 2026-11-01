@@ -341,3 +341,110 @@ class DonorRegistrationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    # --------------------------------------------------
+    # DONOR ELIGIBILITY TESTS — F-003
+    # --------------------------------------------------
+
+    def test_staff_can_view_donor_eligibility(self):
+        self.client.post(
+            self.url,
+            self.valid_payload,
+            format="json",
+        )
+        donor = Donor.objects.get()
+
+        response = self.client.get(
+            f"/api/donors/{donor.id}/eligibility/"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["is_eligible"])
+        self.assertIsNone(response.data["eligibility_checked_at"])
+
+    def test_staff_can_record_eligible_assessment(self):
+        self.client.post(
+            self.url,
+            self.valid_payload,
+            format="json",
+        )
+        donor = Donor.objects.get()
+
+        response = self.client.patch(
+            f"/api/donors/{donor.id}/eligibility/",
+            {
+                "is_eligible": True,
+                "eligibility_notes": "Assessment recorded by staff",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        donor.refresh_from_db()
+        self.assertTrue(donor.is_eligible)
+        self.assertEqual(
+            donor.eligibility_notes,
+            "Assessment recorded by staff",
+        )
+        self.assertIsNotNone(donor.eligibility_checked_at)
+
+    def test_staff_can_record_ineligible_assessment(self):
+        self.client.post(
+            self.url,
+            self.valid_payload,
+            format="json",
+        )
+        donor = Donor.objects.get()
+
+        response = self.client.patch(
+            f"/api/donors/{donor.id}/eligibility/",
+            {
+                "is_eligible": False,
+                "eligibility_notes": "Assessment marked ineligible",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        donor.refresh_from_db()
+        self.assertFalse(donor.is_eligible)
+        self.assertEqual(
+            donor.eligibility_notes,
+            "Assessment marked ineligible",
+        )
+        self.assertIsNotNone(donor.eligibility_checked_at)
+
+    def test_missing_donor_eligibility_returns_404(self):
+        response = self.client.get(
+            "/api/donors/99999/eligibility/"
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_non_staff_cannot_update_donor_eligibility(self):
+        self.client.post(
+            self.url,
+            self.valid_payload,
+            format="json",
+        )
+        donor = Donor.objects.get()
+
+        user = get_user_model().objects.create_user(
+            username="eligibility_regular_user",
+            password="test-password",
+            is_staff=False,
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.patch(
+            f"/api/donors/{donor.id}/eligibility/",
+            {"is_eligible": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        donor.refresh_from_db()
+        self.assertIsNone(donor.is_eligible)
