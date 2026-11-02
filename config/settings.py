@@ -14,7 +14,7 @@ SECRET_KEY = os.environ.get(
     "django-insecure-local-development-only-key",
 )
 
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() == "true"
 
 ALLOWED_HOSTS = []
 
@@ -102,3 +102,29 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# HTTPS / TLS security settings
+SECURE_SSL_REDIRECT = os.environ.get(
+    "SECURE_SSL_REDIRECT", "False"
+).lower() == "true"
+
+SESSION_COOKIE_SECURE = os.environ.get(
+    "SESSION_COOKIE_SECURE", "False"
+).lower() == "true"
+
+CSRF_COOKIE_SECURE = os.environ.get(
+    "CSRF_COOKIE_SECURE", "False"
+).lower() == "true"
+
+SECURE_HSTS_SECONDS = int(
+    os.environ.get("SECURE_HSTS_SECONDS", "0")
+)
+
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS", "False"
+).lower() == "true"
+
+SECURE_HSTS_PRELOAD = os.environ.get(
+    "SECURE_HSTS_PRELOAD", "False"
+).lower() == "true"
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
