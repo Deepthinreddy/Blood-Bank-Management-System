@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Blood Requests | LifeLine{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">RECIPIENT SERVICES</p>
+        <h1>Blood requests</h1>
+        <p class="subtitle">Review, process, allocate, and issue blood requests.</p>
+    </div>
+    <a class="button secondary" href="{% url 'recipient-ui-list' %}">Manage recipients</a>
+</section>
+
+<section class="panel form-panel" style="margin-bottom:18px">
+    <h2 class="section-title">Create a blood request</h2>
+    <p class="subtitle" style="margin:6px 0 16px">New requests enter the existing workflow in Pending status.</p>
+    <form method="post">
+        {% csrf_token %}
+        {% if form_errors %}
+            <div class="alert error">
+                {% for field, errors in form_errors.items %}<div>{{ field|capfirst }}: {{ errors|join:", " }}</div>{% endfor %}
+            </div>
+        {% endif %}
+        <div class="form-grid">
+            <div class="form-field">
+                <label for="id_recipient_name">Recipient name</label>
+                <input id="id_recipient_name" name="recipient_name" type="text" value="{{ submitted.recipient_name }}" required>
+            </div>
+            <div class="form-field">
+                <label for="id_blood_group">Blood group</label>
+                <select id="id_blood_group" name="blood_group" required>
+                    <option value="">Select blood group</option>
+                    {% for value, label in blood_groups %}
+                        <option value="{{ value }}" {% if submitted.blood_group == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="id_units_requested">Units requested</label>
+                <input id="id_units_requested" name="units_requested" type="number" min="1" value="{{ submitted.units_requested }}" required>
+            </div>
+        </div>
+        <div class="form-actions"><button class="button" type="submit">Create request</button></div>
+    </form>
+</section>
+
+<section class="panel">
+    <form method="get" class="toolbar">
+        <div class="filters">
+            <select name="status" aria-label="Filter by request status">
+                <option value="">All statuses</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="button small" type="submit">Filter</button>
+            <a class="button secondary small" href="{% url 'blood-request-list' %}">Reset</a>
+        </div>
+        <span class="subtitle">{{ requests.paginator.count }} request(s)</span>
+    </form>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Recipient</th><th>Blood group</th><th>Units</th><th>Requested</th><th>Status</th><th>Workflow actions</th></tr></thead>
+            <tbody>
+                {% for blood_request in requests %}
+                    <tr>
+                        <td class="table-primary">{{ blood_request.recipient_name }}</td>
+                        <td><span class="badge">{{ blood_request.blood_group }}</span></td>
+                        <td>{{ blood_request.units_requested }}</td>
+                        <td>{{ blood_request.created_at|date:"d M Y, H:i" }}</td>
+                        <td>
+                            <span class="badge {% if blood_request.status == 'PENDING' %}pending{% elif blood_request.status == 'REJECTED' or blood_request.status == 'CANCELLED' %}rejected{% elif blood_request.status == 'FULFILLED' %}fulfilled{% else %}approved{% endif %}">
+                                {{ blood_request.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="button-row">
+                                {% if blood_request.status == "PENDING" %}
+                                    <form class="inline-form" method="post" action="{% url 'blood-request-process' blood_request.pk %}">
+                                        {% csrf_token %}<input type="hidden" name="decision" value="APPROVED">
+                                        <button class="button small" type="submit">Approve</button>
+                                    </form>
+                                    <form class="inline-form" method="post" action="{% url 'blood-request-process' blood_request.pk %}">
+                                        {% csrf_token %}<input type="hidden" name="decision" value="REJECTED">
+                                        <button class="button danger small" type="submit">Reject</button>
+                                    </form>
+                                {% elif blood_request.status == "APPROVED" %}
+                                    <form class="inline-form" method="post" action="{% url 'blood-request-allocate' blood_request.pk %}">
+                                        {% csrf_token %}<button class="button small" type="submit">Allocate stock</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                            {% for allocation in blood_request.allocations.all %}
+                                <div class="table-secondary">
+                                    Unit #{{ allocation.blood_unit_id }} · {{ allocation.get_status_display }}
+                                    {% if allocation.status == "ALLOCATED" %}
+                                        <form class="inline-form" method="post" action="{% url 'blood-allocation-issue' allocation.pk %}">
+                                            {% csrf_token %}<button class="text-button" type="submit">Issue</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6" class="empty-state">No blood requests match this status.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if requests.has_other_pages %}
+        <div class="pagination">
+            {% if requests.has_previous %}<a href="?status={{ selected_status|urlencode }}&page={{ requests.previous_page_number }}">Previous</a>{% endif %}
+            <span>Page {{ requests.number }} of {{ requests.paginator.num_pages }}</span>
+            {% if requests.has_next %}<a href="?status={{ selected_status|urlencode }}&page={{ requests.next_page_number }}">Next</a>{% endif %}
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

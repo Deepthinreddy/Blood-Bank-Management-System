@@ -105,6 +105,17 @@ class AdminDashboardTests(TestCase):
             ).exists()
         )
 
+    def test_successful_login_redirects_to_unified_dashboard(self):
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": "test_admin",
+                "password": "TestPass123!",
+            },
+        )
+
+        self.assertRedirects(response, "/")
+
     def test_logout_creates_audit_record(self):
         self.client.force_login(self.admin_user)
 

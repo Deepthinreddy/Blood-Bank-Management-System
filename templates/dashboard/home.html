@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | LifeLine{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">OVERVIEW</p>
+        <h1>Good to see you, {{ request.user.first_name|default:request.user.username }}</h1>
+        <p class="subtitle">Here is the current picture of your blood bank operations.</p>
+    </div>
+    <a class="button" href="{% url 'donor-ui-register' %}">+ Register donor</a>
+</section>
+
+<section class="stats-grid" aria-label="System summary">
+    <article class="stat-card">
+        <div>
+            <p class="stat-label">Registered donors</p>
+            <p class="stat-value">{{ total_donors }}</p>
+            <p class="stat-note">Across all blood groups</p>
+        </div>
+        <span class="stat-icon">DN</span>
+    </article>
+    <article class="stat-card">
+        <div>
+            <p class="stat-label">Available blood stock</p>
+            <p class="stat-value">{{ available_stock_ml|default:0 }}<small style="font-size:12px;letter-spacing:0"> ml</small></p>
+            <p class="stat-note">Unexpired, available inventory</p>
+        </div>
+        <span class="stat-icon green">BI</span>
+    </article>
+    <article class="stat-card">
+        <div>
+            <p class="stat-label">Pending requests</p>
+            <p class="stat-value">{{ pending_requests }}</p>
+            <p class="stat-note">Waiting for review</p>
+        </div>
+        <span class="stat-icon amber">BR</span>
+    </article>
+    <article class="stat-card">
+        <div>
+            <p class="stat-label">Total blood requests</p>
+            <p class="stat-value">{{ total_requests }}</p>
+            <p class="stat-note">All recorded requests</p>
+        </div>
+        <span class="stat-icon">RQ</span>
+    </article>
+</section>
+
+<section class="dashboard-grid">
+    <article class="panel">
+        <header class="panel-header">
+            <h2 class="section-title">Available stock by blood group</h2>
+            <a class="panel-link" href="{% url 'inventory_list' %}">View inventory</a>
+        </header>
+        <div class="panel-body">
+            {% if blood_stock %}
+                <div class="stock-list">
+                    {% for item in blood_stock %}
+                        <div class="stock-row">
+                            <span class="blood-type">{{ item.blood_group }}</span>
+                            <div class="stock-meta">
+                                <strong><span>{{ item.blood_group }} blood</span><span>{{ item.available_ml }} ml</span></strong>
+                                <div class="stock-track" aria-label="{{ item.bar_width }} percent of maximum stock">
+                                    <span style="width: {{ item.bar_width }}%"></span>
+                                </div>
+                            </div>
+                            <span class="badge available">Available</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">No unexpired available stock is currently recorded.</div>
+            {% endif %}
+        </div>
+    </article>
+    <article class="panel">
+        <header class="panel-header">
+            <h2 class="section-title">Recent blood requests</h2>
+            <a class="panel-link" href="{% url 'blood-request-list' %}">Manage requests</a>
+        </header>
+        {% if recent_requests %}
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Recipient</th><th>Group</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for blood_request in recent_requests %}
+                            <tr>
+                                <td><span class="table-primary">{{ blood_request.recipient_name }}</span><span class="table-secondary">{{ blood_request.created_at|date:"d M Y" }}</span></td>
+                                <td>{{ blood_request.blood_group }}</td>
+                                <td><span class="badge {% if blood_request.status == 'PENDING' %}pending{% elif blood_request.status == 'REJECTED' %}rejected{% elif blood_request.status == 'FULFILLED' %}fulfilled{% else %}approved{% endif %}">{{ blood_request.get_status_display }}</span></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">No blood requests have been recorded yet.</div>
+        {% endif %}
+    </article>
+</section>
+
+<section class="panel" style="margin-top:18px">
+    <header class="panel-header">
+        <h2 class="section-title">Recently registered donors</h2>
+        <a class="panel-link" href="{% url 'donor-ui-list' %}">View all donors</a>
+    </header>
+    {% if recent_donors %}
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Donor</th><th>Blood group</th><th>Phone</th><th>Registered</th></tr></thead>
+                <tbody>
+                    {% for donor in recent_donors %}
+                        <tr>
+                            <td><a class="table-primary" href="{% url 'donor-ui-detail' donor.pk %}">{{ donor.full_name }}</a></td>
+                            <td><span class="badge">{{ donor.blood_group }}</span></td>
+                            <td>{{ donor.phone_number }}</td>
+                            <td>{{ donor.created_at|date:"d M Y" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">No donors are registered yet.</div>
+    {% endif %}
+</section>
+{% endblock %}

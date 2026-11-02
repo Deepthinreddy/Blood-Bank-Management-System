@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Edit recipient | LifeLine{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div><p class="eyebrow">RECIPIENT SERVICES</p><h1>Update recipient</h1><p class="subtitle">Edit {{ recipient.full_name }}'s record.</p></div>
+    <a class="button secondary" href="{% url 'recipient-ui-list' %}">Cancel</a>
+</section>
+<section class="panel form-panel">
+    <form method="post">
+        {% csrf_token %}
+        {% if errors %}<div class="alert error">{% for field, messages in errors.items %}<div>{{ field|capfirst }}: {{ messages|join:", " }}</div>{% endfor %}</div>{% endif %}
+        <div class="form-grid">
+            <div class="form-field"><label for="id_full_name">Full name</label><input id="id_full_name" name="full_name" value="{% if submitted %}{{ submitted.full_name }}{% else %}{{ recipient.full_name }}{% endif %}" required></div>
+            <div class="form-field"><label for="id_identification_number">Identification number</label><input id="id_identification_number" name="identification_number" value="{% if submitted %}{{ submitted.identification_number }}{% else %}{{ recipient.identification_number }}{% endif %}" required></div>
+            <div class="form-field"><label for="id_contact_number">Contact number</label><input id="id_contact_number" name="contact_number" value="{% if submitted %}{{ submitted.contact_number }}{% else %}{{ recipient.contact_number }}{% endif %}" required></div>
+            <div class="form-field">
+                <label for="id_blood_group">Blood group</label>
+                <select id="id_blood_group" name="blood_group" required>
+                    {% for value, label in blood_groups %}<option value="{{ value }}" {% if submitted.blood_group == value or not submitted and recipient.blood_group == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-field full"><label for="id_notes">Notes</label><textarea id="id_notes" name="notes">{% if submitted %}{{ submitted.notes }}{% else %}{{ recipient.notes }}{% endif %}</textarea></div>
+        </div>
+        <div class="form-actions"><button class="button" type="submit">Save changes</button></div>
+    </form>
+</section>
+{% endblock %}

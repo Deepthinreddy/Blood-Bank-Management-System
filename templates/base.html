@@ -1,0 +1,90 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>{% block title %}Blood Bank Management System{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <script src="{% static 'js/dashboard.js' %}" defer></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar" id="site-sidebar">
+        <a class="brand" href="{% url 'dashboard' %}">
+            <span class="brand-mark" aria-hidden="true">+</span>
+            <span>
+                <strong>LifeLine</strong>
+                <small>Blood Bank System</small>
+            </span>
+        </a>
+        <div class="nav-caption">WORKSPACE</div>
+        <nav class="main-nav" aria-label="Main navigation">
+            <a class="nav-link {% if active_nav == 'dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}">
+                <span class="nav-icon" aria-hidden="true">D</span>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-link {% if active_nav == 'donors' %}is-active{% endif %}" href="{% url 'donor-ui-list' %}">
+                <span class="nav-icon" aria-hidden="true">DN</span>
+                <span>Donor Management</span>
+            </a>
+            <a class="nav-link {% if active_nav == 'inventory' %}is-active{% endif %}" href="{% url 'inventory_list' %}">
+                <span class="nav-icon" aria-hidden="true">BI</span>
+                <span>Blood Inventory</span>
+            </a>
+            <a class="nav-link {% if active_nav == 'requests' %}is-active{% endif %}" href="{% url 'blood-request-list' %}">
+                <span class="nav-icon" aria-hidden="true">BR</span>
+                <span>Blood Requests</span>
+            </a>
+            {% if request.user.role == "ADMIN" %}
+                <a class="nav-link {% if active_nav == 'admin' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}">
+                    <span class="nav-icon" aria-hidden="true">AM</span>
+                    <span>Admin Management</span>
+                </a>
+            {% endif %}
+        </nav>
+        <div class="sidebar-footer">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span>Care that keeps flowing</span>
+        </div>
+    </aside>
+
+    <main class="main-area">
+        <header class="topbar">
+            <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-controls="site-sidebar" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="topbar-label">Blood Bank Management System</div>
+            <div class="user-menu">
+                {% if request.user.is_authenticated %}
+                    <span class="user-avatar" aria-hidden="true">{{ request.user.username|first|upper }}</span>
+                    <span class="user-details">
+                        <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                        <small>{{ request.user.get_role_display|default:"Staff" }}</small>
+                    </span>
+                    <form method="post" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button class="text-button" type="submit">Sign out</button>
+                    </form>
+                {% else %}
+                    <a class="text-button" href="{% url 'login' %}">Sign in</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <div class="page-content">
+            {% if messages %}
+                <div class="messages" role="status" aria-live="polite">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -3,6 +3,7 @@ from django.db.models import Count
 from django.shortcuts import render
 
 from donors.models import Donor
+from .models import AuditRecord
 from .permissions import admin_required
 
 
@@ -11,9 +12,17 @@ User = get_user_model()
 
 @admin_required
 def admin_dashboard(request):
+    context = {
+        "total_users": User.objects.count(),
+        "active_users": User.objects.filter(is_active=True).count(),
+        "total_donors": Donor.objects.count(),
+        "recent_activity": AuditRecord.objects.select_related("user")[:5],
+        "can_manage_users": request.user.is_staff or request.user.is_superuser,
+    }
     return render(
         request,
         "accounts/admin_dashboard.html",
+        context,
     )
 
 

@@ -258,6 +258,7 @@ class DonorRegistrationTests(TestCase):
             450,
         )
 
+
     def test_staff_can_retrieve_donation_history(self):
         self.client.post(
             self.url,
@@ -448,3 +449,64 @@ class DonorRegistrationTests(TestCase):
 
         donor.refresh_from_db()
         self.assertIsNone(donor.is_eligible)
+
+
+class DonorFrontendTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="donor_frontend_staff",
+            password="DonorFrontendPass123!",
+            is_staff=True,
+        )
+        self.client.force_login(self.staff)
+
+    def test_donor_management_page_uses_existing_donor_records(self):
+        Donor.objects.create(
+            full_name="Frontend Donor",
+            date_of_birth=date(1994, 5, 10),
+            phone_number="9876543210",
+            email="frontend@example.com",
+            address="Mysuru",
+            blood_group="B+",
+        )
+
+        response = self.client.get("/donors/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Frontend Donor")
+        self.assertContains(response, "Donor Management")
+
+    def test_registration_and_profile_pages_render(self):
+        registration_response = self.client.get("/donors/register/")
+        donor = Donor.objects.create(
+            full_name="Profile Donor",
+            date_of_birth=date(1994, 5, 10),
+            phone_number="9876543210",
+            email="profile@example.com",
+            address="Mysuru",
+            blood_group="B+",
+        )
+
+        profile_response = self.client.get(f"/donors/{donor.pk}/")
+
+        self.assertEqual(registration_response.status_code, 200)
+        self.assertEqual(profile_response.status_code, 200)
+        self.assertContains(profile_response, "Profile Donor")
+
+    def test_donor_can_be_registered_from_the_frontend(self):
+        response = self.client.post(
+            "/donors/register/",
+            {
+                "full_name": "Created From UI",
+                "date_of_birth": "1994-05-10",
+                "phone_number": "9876543210",
+                "email": "created@example.com",
+                "address": "Mysuru",
+                "blood_group": "B+",
+            },
+        )
+
+        self.assertRedirects(response, "/donors/1/")
+        self.assertTrue(
+            Donor.objects.filter(full_name="Created From UI").exists()
+        )

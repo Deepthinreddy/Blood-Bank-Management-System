@@ -1,63 +1,35 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BBMS Admin Reports</title>
-</head>
-<body>
-    <h1>Blood Bank Management System - Admin Reports</h1>
+{% extends "base.html" %}
 
-    <p><strong>Total registered users:</strong> {{ total_users }}</p>
-    <p><strong>Total registered donors:</strong> {{ total_donors }}</p>
+{% block title %}Admin Reports | LifeLine{% endblock %}
 
-    <h2>Donors by Blood Group</h2>
-    {% if donors_by_blood_group %}
-        <table border="1" cellpadding="8">
-            <thead>
-                <tr>
-                    <th>Blood Group</th>
-                    <th>Number of Donors</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in donors_by_blood_group %}
-                    <tr>
-                        <td>{{ item.blood_group }}</td>
-                        <td>{{ item.total }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No donor records found.</p>
-    {% endif %}
-
-    <h2>10 Most Recently Registered Donors</h2>
-    {% if recent_donors %}
-        <table border="1" cellpadding="8">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Blood Group</th>
-                    <th>Registration Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for donor in recent_donors %}
-                    <tr>
-                        <td>{{ donor.full_name }}</td>
-                        <td>{{ donor.blood_group }}</td>
-                        <td>{{ donor.created_at|date:"d M Y, H:i" }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No donor records found.</p>
-    {% endif %}
-
-    <p><a href="{% url 'admin_dashboard' %}">Back to Dashboard</a></p>
-</body>
-</html>
+{% block content %}
+<section class="page-heading">
+    <div><p class="eyebrow">SYSTEM ADMINISTRATION</p><h1>System reports</h1><p class="subtitle">Current donor and account data from the database.</p></div>
+    <a class="button secondary" href="{% url 'admin_dashboard' %}">Back to admin management</a>
+</section>
+<section class="stats-grid">
+    <article class="stat-card"><div><p class="stat-label">Registered accounts</p><p class="stat-value">{{ total_users }}</p></div><span class="stat-icon">AC</span></article>
+    <article class="stat-card"><div><p class="stat-label">Registered donors</p><p class="stat-value">{{ total_donors }}</p></div><span class="stat-icon green">DN</span></article>
+</section>
+<section class="dashboard-grid">
+    <article class="panel">
+        <header class="panel-header"><h2 class="section-title">Donors by blood group</h2></header>
+        {% if donors_by_blood_group %}
+            <div class="table-wrap"><table>
+                <thead><tr><th>Blood group</th><th>Donors</th></tr></thead>
+                <tbody>{% for item in donors_by_blood_group %}<tr><td><span class="badge">{{ item.blood_group }}</span></td><td>{{ item.total }}</td></tr>{% endfor %}</tbody>
+            </table></div>
+        {% else %}<div class="empty-state">No donor records found.</div>{% endif %}
+    </article>
+    <article class="panel">
+        <header class="panel-header"><h2 class="section-title">Recently registered donors</h2></header>
+        {% if recent_donors %}
+            <div class="table-wrap"><table>
+                <thead><tr><th>Name</th><th>Blood group</th><th>Registered</th></tr></thead>
+                <tbody>{% for donor in recent_donors %}<tr><td>{{ donor.full_name }}</td><td>{{ donor.blood_group }}</td><td>{{ donor.created_at|date:"d M Y" }}</td></tr>{% endfor %}</tbody>
+            </table></div>
+        {% else %}<div class="empty-state">No donor records found.</div>{% endif %}
+    </article>
+</section>
+{% endblock %}
