@@ -7,6 +7,7 @@ from .views import (
     process_request,
     recipient_list,
     recipient_detail,
+    create_blood_request,
 )
 
 urlpatterns = [
@@ -24,6 +25,11 @@ urlpatterns = [
         "requests/<int:request_id>/process/",
         process_request,
         name="process-request",
+    ),
+    path(
+        "requests/create/",
+        create_blood_request,
+        name="create-blood-request",
     ),
     path("recipients/", recipient_list, name="recipient-list"),
     path("recipients/<int:recipient_id>/", recipient_detail, name="recipient-detail"),
