@@ -306,3 +306,80 @@ class RecipientManagementTests(TestCase):
         response = self.client.get("/api/recipients/99999/")
 
         self.assertEqual(response.status_code, 404)
+
+
+class BloodRequestFrontendTests(TestCase):
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="request_frontend_staff",
+            password="RequestFrontendPass123!",
+            is_staff=True,
+        )
+        self.client.force_login(self.staff)
+
+    def test_request_and_recipient_pages_render(self):
+        blood_request = BloodRequest.objects.create(
+            recipient_name="Listed Recipient",
+            blood_group="A+",
+            units_requested=1,
+        )
+        response = self.client.get("/requests/")
+        recipient_response = self.client.get("/requests/recipients/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Listed Recipient")
+        self.assertContains(response, blood_request.get_status_display())
+        self.assertEqual(recipient_response.status_code, 200)
+
+    def test_request_can_be_created_from_frontend(self):
+        response = self.client.post(
+            "/requests/",
+            {
+                "recipient_name": "Frontend Recipient",
+                "blood_group": "A+",
+                "units_requested": 2,
+            },
+        )
+
+        self.assertRedirects(response, "/requests/")
+        self.assertTrue(
+            BloodRequest.objects.filter(
+                recipient_name="Frontend Recipient",
+                status=BloodRequest.Status.PENDING,
+            ).exists()
+        )
+
+    def test_request_processing_uses_existing_workflow(self):
+        blood_request = BloodRequest.objects.create(
+            recipient_name="Pending Recipient",
+            blood_group="O+",
+            units_requested=1,
+        )
+
+        response = self.client.post(
+            f"/requests/{blood_request.pk}/process/",
+            {"decision": BloodRequest.Status.APPROVED},
+        )
+
+        self.assertRedirects(response, "/requests/")
+        blood_request.refresh_from_db()
+        self.assertEqual(blood_request.status, BloodRequest.Status.APPROVED)
+
+    def test_recipient_management_page_registers_existing_model(self):
+        response = self.client.post(
+            "/requests/recipients/",
+            {
+                "full_name": "Frontend Recipient",
+                "identification_number": "FRONTEND-001",
+                "contact_number": "9876543210",
+                "blood_group": "B+",
+                "notes": "Registered from UI",
+            },
+        )
+
+        self.assertRedirects(response, "/requests/recipients/")
+        self.assertTrue(
+            Recipient.objects.filter(
+                identification_number="FRONTEND-001"
+            ).exists()
+        )

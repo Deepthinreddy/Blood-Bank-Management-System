@@ -2,9 +2,12 @@
 from datetime import date, timedelta
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from blood_requests.models import BloodRequest
+from donors.models import Donor
 from .models import BloodInventory, Donation
 
 
@@ -108,3 +111,44 @@ class InventoryPaginationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["inventory"].number, 1)
+
+
+class UnifiedDashboardTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="dashboard_staff",
+            password="DashboardPass123!",
+            is_staff=True,
+        )
+
+    def test_dashboard_requires_login(self):
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertRedirects(
+            response,
+            "/accounts/login/?next=/",
+        )
+
+    def test_dashboard_shows_database_totals(self):
+        Donor.objects.create(
+            full_name="Dashboard Donor",
+            date_of_birth=date(1995, 1, 1),
+            phone_number="9876543210",
+            email="dashboard@example.com",
+            address="Bengaluru",
+            blood_group="O+",
+        )
+        BloodRequest.objects.create(
+            recipient_name="Dashboard Recipient",
+            blood_group="A+",
+            units_requested=2,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_donors"], 1)
+        self.assertEqual(response.context["pending_requests"], 1)
+        self.assertContains(response, "Dashboard Donor")
+        self.assertContains(response, "Dashboard Recipient")

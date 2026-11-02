@@ -91,3 +91,23 @@ The system is designed with the following requirements:
 ## Project Status
 
 🚧 Currently under development.
+
+## Running the application
+
+The `manage.py` entry point uses the `config` Django settings and the local
+SQLite database (`db_local.sqlite3`).
+
+```bash
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+Open `http://127.0.0.1:8000/` and sign in at `/accounts/login/`. The unified
+dashboard links to donor management, blood inventory, blood requests, and
+administration (for users with the Admin role). The Django admin user and audit
+record tools are linked from Admin Management for accounts with Django staff
+access.
+
+Existing API endpoints remain available under `/api/`; the integrated HTML
+pages are at `/`, `/donors/`, `/inventory/`, and `/requests/`.

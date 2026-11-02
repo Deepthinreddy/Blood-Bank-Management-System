@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}{% if donor %}Edit donor{% else %}Register donor{% endif %} | LifeLine{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">DONOR MANAGEMENT</p>
+        <h1>{% if donor %}Update donor record{% else %}Register a donor{% endif %}</h1>
+        <p class="subtitle">Keep donor contact and blood group information accurate.</p>
+    </div>
+    <a class="button secondary" href="{% if donor %}{% url 'donor-ui-detail' donor.pk %}{% else %}{% url 'donor-ui-list' %}{% endif %}">Cancel</a>
+</section>
+<div class="form-layout">
+    <section class="panel form-panel">
+        <form method="post">
+            {% csrf_token %}
+            {% if errors.non_field_errors %}<div class="alert error">{{ errors.non_field_errors }}</div>{% endif %}
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="id_full_name">Full name</label>
+                    <input id="id_full_name" name="full_name" type="text" value="{% if submitted %}{{ submitted.full_name }}{% elif donor %}{{ donor.full_name }}{% endif %}" required>
+                    {% if errors.full_name %}<div class="field-error">{{ errors.full_name|join:", " }}</div>{% endif %}
+                </div>
+                <div class="form-field">
+                    <label for="id_date_of_birth">Date of birth</label>
+                    <input id="id_date_of_birth" name="date_of_birth" type="date" value="{% if submitted %}{{ submitted.date_of_birth }}{% elif donor %}{{ donor.date_of_birth|date:'Y-m-d' }}{% endif %}" required>
+                    {% if errors.date_of_birth %}<div class="field-error">{{ errors.date_of_birth|join:", " }}</div>{% endif %}
+                </div>
+                <div class="form-field">
+                    <label for="id_phone_number">Phone number</label>
+                    <input id="id_phone_number" name="phone_number" type="text" value="{% if submitted %}{{ submitted.phone_number }}{% elif donor %}{{ donor.phone_number }}{% endif %}" required>
+                    {% if errors.phone_number %}<div class="field-error">{{ errors.phone_number|join:", " }}</div>{% endif %}
+                </div>
+                <div class="form-field">
+                    <label for="id_email">Email</label>
+                    <input id="id_email" name="email" type="email" value="{% if submitted %}{{ submitted.email }}{% elif donor %}{{ donor.email }}{% endif %}" required>
+                    {% if errors.email %}<div class="field-error">{{ errors.email|join:", " }}</div>{% endif %}
+                </div>
+                <div class="form-field full">
+                    <label for="id_address">Address</label>
+                    <input id="id_address" name="address" type="text" value="{% if submitted %}{{ submitted.address }}{% elif donor %}{{ donor.address }}{% endif %}" required>
+                    {% if errors.address %}<div class="field-error">{{ errors.address|join:", " }}</div>{% endif %}
+                </div>
+                <div class="form-field">
+                    <label for="id_blood_group">Blood group</label>
+                    <select id="id_blood_group" name="blood_group" required>
+                        <option value="">Select blood group</option>
+                        {% for value, label in blood_groups %}
+                            <option value="{{ value }}" {% if submitted.blood_group == value or not submitted and donor.blood_group == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if errors.blood_group %}<div class="field-error">{{ errors.blood_group|join:", " }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="form-actions"><button class="button" type="submit">{% if donor %}Save changes{% else %}Register donor{% endif %}</button></div>
+        </form>
+    </section>
+    <aside class="help-card">
+        <h3>Donor data</h3>
+        <p>Blood group and donor identity are used by the existing donor and donation workflows. A donor's eligibility can be assessed from their profile.</p>
+    </aside>
+</div>
+{% endblock %}

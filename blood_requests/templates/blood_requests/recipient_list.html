@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Recipient Management | LifeLine{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">RECIPIENT SERVICES</p>
+        <h1>Recipients</h1>
+        <p class="subtitle">Maintain recipient records used by the blood request workflow.</p>
+    </div>
+    <a class="button secondary" href="{% url 'blood-request-list' %}">Back to requests</a>
+</section>
+
+<section class="panel form-panel" style="margin-bottom:18px">
+    <h2 class="section-title">Register recipient</h2>
+    <form method="post" style="margin-top:16px">
+        {% csrf_token %}
+        {% if errors %}
+            <div class="alert error">{% for field, messages in errors.items %}<div>{{ field|capfirst }}: {{ messages|join:", " }}</div>{% endfor %}</div>
+        {% endif %}
+        <div class="form-grid">
+            <div class="form-field"><label for="id_full_name">Full name</label><input id="id_full_name" name="full_name" value="{{ submitted.full_name }}" required></div>
+            <div class="form-field"><label for="id_identification_number">Identification number</label><input id="id_identification_number" name="identification_number" value="{{ submitted.identification_number }}" required></div>
+            <div class="form-field"><label for="id_contact_number">Contact number</label><input id="id_contact_number" name="contact_number" value="{{ submitted.contact_number }}" required></div>
+            <div class="form-field">
+                <label for="id_blood_group">Blood group</label>
+                <select id="id_blood_group" name="blood_group" required>
+                    <option value="">Select blood group</option>
+                    {% for value, label in blood_groups %}<option value="{{ value }}" {% if submitted.blood_group == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="form-field full"><label for="id_notes">Notes</label><textarea id="id_notes" name="notes">{{ submitted.notes }}</textarea></div>
+        </div>
+        <div class="form-actions"><button class="button" type="submit">Register recipient</button></div>
+    </form>
+</section>
+
+<section class="panel">
+    <form method="get" class="toolbar">
+        <div class="filters">
+            <input class="filter-search" name="q" type="search" placeholder="Search recipient" value="{{ search_query }}">
+            <button class="button small" type="submit">Search</button>
+            <a class="button secondary small" href="{% url 'recipient-ui-list' %}">Reset</a>
+        </div>
+        <span class="subtitle">{{ recipients.paginator.count }} recipient(s)</span>
+    </form>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Recipient</th><th>Identification</th><th>Contact</th><th>Blood group</th><th>Registered</th><th></th></tr></thead>
+            <tbody>
+                {% for recipient in recipients %}
+                    <tr>
+                        <td class="table-primary">{{ recipient.full_name }}</td>
+                        <td>{{ recipient.identification_number }}</td>
+                        <td>{{ recipient.contact_number }}</td>
+                        <td><span class="badge">{{ recipient.blood_group }}</span></td>
+                        <td>{{ recipient.registered_at|date:"d M Y" }}</td>
+                        <td><a class="button secondary small" href="{% url 'recipient-ui-update' recipient.pk %}">Edit</a></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6" class="empty-state">No recipients match your search.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if recipients.has_other_pages %}
+        <div class="pagination">
+            {% if recipients.has_previous %}<a href="?q={{ search_query|urlencode }}&page={{ recipients.previous_page_number }}">Previous</a>{% endif %}
+            <span>Page {{ recipients.number }} of {{ recipients.paginator.num_pages }}</span>
+            {% if recipients.has_next %}<a href="?q={{ search_query|urlencode }}&page={{ recipients.next_page_number }}">Next</a>{% endif %}
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

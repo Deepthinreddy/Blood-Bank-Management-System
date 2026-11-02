@@ -1,16 +1,78 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>BBMS Admin Dashboard</title>
-</head>
-<body>
-<p>Username: {{ request.user.username }}</p>
-<p>Role: {{ request.user.role }}</p>
+{% extends "base.html" %}
 
-<form method="post" action="/accounts/logout/">
-    {% csrf_token %}
-    <button type="submit">Logout</button>
-</form>>
-</html>
+{% block title %}Admin Management | LifeLine{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">SYSTEM ADMINISTRATION</p>
+        <h1>Admin management</h1>
+        <p class="subtitle">Manage access, review activity, and monitor system accounts.</p>
+    </div>
+    <a class="button secondary" href="{% url 'admin_reports' %}">View reports</a>
+</section>
+
+<section class="stats-grid">
+    <article class="stat-card">
+        <div><p class="stat-label">Registered accounts</p><p class="stat-value">{{ total_users }}</p><p class="stat-note">User accounts in the system</p></div>
+        <span class="stat-icon">AC</span>
+    </article>
+    <article class="stat-card">
+        <div><p class="stat-label">Active accounts</p><p class="stat-value">{{ active_users }}</p><p class="stat-note">Accounts currently enabled</p></div>
+        <span class="stat-icon green">ON</span>
+    </article>
+    <article class="stat-card">
+        <div><p class="stat-label">Registered donors</p><p class="stat-value">{{ total_donors }}</p><p class="stat-note">Donor records</p></div>
+        <span class="stat-icon amber">DN</span>
+    </article>
+</section>
+
+<section class="dashboard-grid">
+    <article class="panel">
+        <header class="panel-header"><h2 class="section-title">Administration tools</h2></header>
+        <div class="panel-body">
+            <div class="button-row">
+                <a class="button" href="{% url 'admin_reports' %}">Open system reports</a>
+                {% if can_manage_users %}
+                    <a class="button secondary" href="{% url 'admin:accounts_user_changelist' %}">Manage user accounts</a>
+                    <a class="button secondary" href="{% url 'admin:accounts_auditrecord_changelist' %}">Review audit records</a>
+                {% endif %}
+            </div>
+            {% if not can_manage_users %}
+                <p class="subtitle" style="margin-top:14px">User and audit record management requires Django staff access.</p>
+            {% endif %}
+        </div>
+    </article>
+    <article class="panel">
+        <header class="panel-header"><h2 class="section-title">Signed-in administrator</h2></header>
+        <div class="panel-body detail-list">
+            <div class="detail-item"><small>Account</small><strong>{{ request.user.get_full_name|default:request.user.username }}</strong></div>
+            <div class="detail-item"><small>Role</small><strong>{{ request.user.get_role_display }}</strong></div>
+        </div>
+    </article>
+</section>
+
+<section class="panel" style="margin-top:18px">
+    <header class="panel-header"><h2 class="section-title">Recent account activity</h2></header>
+    {% if recent_activity %}
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Activity</th><th>User</th><th>Details</th><th>Time</th></tr></thead>
+                <tbody>
+                    {% for record in recent_activity %}
+                        <tr>
+                            <td><span class="badge">{{ record.action }}</span></td>
+                            <td>{{ record.user|default:"System" }}</td>
+                            <td>{{ record.details|default:"—" }}</td>
+                            <td>{{ record.timestamp|date:"d M Y, H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">No account activity has been recorded yet.</div>
+    {% endif %}
+</section>
+{% endblock %}

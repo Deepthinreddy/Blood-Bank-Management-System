@@ -1,33 +1,24 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BBMS Login</title>
-</head>
-<body>
-    <h1>Blood Bank Management System</h1>
-    <h2>Login</h2>
+{% extends "base.html" %}
 
+{% block title %}Sign in | LifeLine{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div><p class="eyebrow">SECURE ACCESS</p><h1>Welcome back</h1><p class="subtitle">Sign in to manage blood bank operations.</p></div>
+</section>
+<section class="panel form-panel" style="max-width:560px">
     {% if form.errors %}
-        <p>Invalid username or password. Please try again.</p>
+        <div class="alert error">Invalid username or password. Please try again.</div>
     {% endif %}
-
     <form method="post">
         {% csrf_token %}
-
-        <p>
-            <label for="id_username">Username:</label>
-            {{ form.username }}
-        </p>
-
-        <p>
-            <label for="id_password">Password:</label>
-            {{ form.password }}
-        </p>
-
-        <button type="submit">Login</button>
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="form-grid">
+            <div class="form-field full"><label for="id_username">Username</label>{{ form.username }}</div>
+            <div class="form-field full"><label for="id_password">Password</label>{{ form.password }}</div>
+        </div>
+        <div class="form-actions"><button class="button" type="submit">Sign in</button></div>
     </form>
-</body>
-</html>
+</section>
+{% endblock %}
