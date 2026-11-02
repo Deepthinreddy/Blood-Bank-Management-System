@@ -2,6 +2,7 @@
 from datetime import timedelta
 
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import redirect, render
@@ -87,6 +88,7 @@ def inventory_list(request):
 
     # F-013: Search by blood group or storage location.
     search_query = request.GET.get("q", "").strip()
+
     if search_query:
         inventory = inventory.filter(
             Q(blood_group__icontains=search_query)
@@ -95,7 +97,9 @@ def inventory_list(request):
 
     # Filter by status.
     selected_status = request.GET.get("status", "").strip()
-    valid_statuses = {choice[0] for choice in BloodInventory.Status.choices}
+    valid_statuses = {
+        choice[0] for choice in BloodInventory.Status.choices
+    }
 
     if selected_status in valid_statuses:
         inventory = inventory.filter(status=selected_status)
@@ -111,10 +115,12 @@ def inventory_list(request):
             expiry_date__gte=today,
             expiry_date__lte=warning_date,
         )
+
     elif expiry_filter == "expired":
         inventory = inventory.filter(
             Q(status="Expired") | Q(expiry_date__lt=today)
         )
+
     elif expiry_filter == "valid":
         inventory = inventory.filter(
             status="Available",
@@ -124,20 +130,27 @@ def inventory_list(request):
 
     inventory = inventory.order_by("blood_group", "expiry_date")
 
-    # Attach display-only expiry information; no schema changes needed.
-    for item in inventory:
+    # Paginate inventory records to limit the number loaded per page.
+    paginator = Paginator(inventory, 20)
+    page_number = request.GET.get("page")
+    inventory_page = paginator.get_page(page_number)
+
+    # Attach display-only expiry information to the current page.
+    for item in inventory_page:
         if item.expiry_date < today or item.status == "Expired":
             item.expiry_label = "Expired"
+
         elif (
             item.status == "Available"
             and item.expiry_date <= warning_date
         ):
             item.expiry_label = "Expiring soon"
+
         else:
             item.expiry_label = "Normal"
 
     context = {
-        "inventory": inventory,
+        "inventory": inventory_page,
         "search_query": search_query,
         "selected_status": selected_status,
         "expiry_filter": expiry_filter,
@@ -145,4 +158,8 @@ def inventory_list(request):
         "today": today,
     }
 
-    return render(request, "inventory/inventory_list.html", context)
+    return render(
+        request,
+        "inventory/inventory_list.html",
+        context,
+    )

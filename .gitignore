@@ -7,8 +7,11 @@ env/
 __pycache__/
 *.py[cod]
 
-# Local databases
-db.sqlite3
+# Local databases and backups
+*.sqlite3
+*.sqlite3-*
+*.backup
+config/settings.py.benchmark-backup
 
 # Environment variables and secrets
 .env

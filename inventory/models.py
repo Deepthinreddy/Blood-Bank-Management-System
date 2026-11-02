@@ -69,3 +69,6 @@ class BloodInventory(models.Model):
 
     class Meta:
         ordering = ["blood_group", "expiry_date"]
+        indexes = [
+            models.Index(fields=["blood_group", "status", "expiry_date"]),
+        ]

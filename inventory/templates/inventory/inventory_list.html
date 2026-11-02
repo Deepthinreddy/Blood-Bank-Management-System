@@ -58,6 +58,24 @@
         .soon { color: #9a6700; font-weight: bold; }
         .normal { color: #18794e; }
         .empty { padding: 24px; text-align: center; }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 24px;
+        }
+        .pagination a {
+            padding: 9px 14px;
+            background: #a61b29;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .pagination a.disabled {
+            background: #ccc;
+            pointer-events: none;
+        }
         @media (max-width: 700px) {
             .container { margin: 10px; padding: 14px; overflow-x: auto; }
             table { min-width: 750px; }
@@ -107,7 +125,10 @@
         <a class="reset" href="{% url 'inventory_list' %}">Reset</a>
     </form>
 
-    <p>Showing {{ inventory|length }} inventory record(s).</p>
+    <p>
+        Showing {{ inventory|length }} record(s) on this page.
+        Total matching records: {{ inventory.paginator.count }}.
+    </p>
 
     <table>
         <thead>
@@ -151,6 +172,26 @@
             {% endfor %}
         </tbody>
     </table>
+
+    {% if inventory.has_other_pages %}
+        <div class="pagination">
+            {% if inventory.has_previous %}
+                <a href="?q={{ search_query|urlencode }}&status={{ selected_status|urlencode }}&expiry={{ expiry_filter|urlencode }}&page={{ inventory.previous_page_number }}">
+                    Previous
+                </a>
+            {% endif %}
+
+            <span>
+                Page {{ inventory.number }} of {{ inventory.paginator.num_pages }}
+            </span>
+
+            {% if inventory.has_next %}
+                <a href="?q={{ search_query|urlencode }}&status={{ selected_status|urlencode }}&expiry={{ expiry_filter|urlencode }}&page={{ inventory.next_page_number }}">
+                    Next
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
 </div>
 </body>
 </html>
