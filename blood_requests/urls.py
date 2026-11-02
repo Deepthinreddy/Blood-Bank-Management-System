@@ -5,6 +5,8 @@ from .views import (
     issue_allocation,
     process_request,
     track_request_status,
+    recipient_list,
+    recipient_detail,
     create_blood_request,
 )
 
@@ -33,5 +35,11 @@ urlpatterns = [
         "requests/create/",
         create_blood_request,
         name="create-blood-request",
+    ),
+    path("recipients/", recipient_list, name="recipient-list"),
+    path(
+        "recipients/<int:recipient_id>/",
+        recipient_detail,
+        name="recipient-detail",
     ),
 ]
