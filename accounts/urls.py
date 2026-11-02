@@ -16,6 +16,11 @@ urlpatterns = [
         views.admin_dashboard,
         name="admin_dashboard",
     ),
+        path(
+        "admin-reports/",
+        views.admin_reports,
+        name="admin_reports",
+    ),
     path(
         "logout/",
         auth_views.LogoutView.as_view(),

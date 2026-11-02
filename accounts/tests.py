@@ -1,8 +1,10 @@
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from accounts.models import AuditRecord
 from django.urls import reverse
 from django.utils import timezone
+import time
 
 User = get_user_model()
 
@@ -64,6 +66,55 @@ class AdminDashboardTests(TestCase):
         self.assertRedirects(
             response,
             "/accounts/login/?next=/accounts/admin-dashboard/",
+        )
+    def test_inactive_user_is_logged_out(self):
+        self.client.force_login(self.admin_user)
+
+        session = self.client.session
+        session["last_activity"] = time.time() - 1801
+        session.save()
+
+        response = self.client.get(
+            reverse("admin_dashboard")
+        )
+
+        self.assertRedirects(
+            response,
+            "/accounts/login/",
+        )
+
+        self.assertNotIn(
+            "_auth_user_id",
+            self.client.session,
+        )
+        
+    def test_successful_login_creates_audit_record(self):
+        response = self.client.post(
+            reverse("login"),
+            {
+                "username": "test_admin",
+                "password": "TestPass123!",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            AuditRecord.objects.filter(
+                user=self.admin_user,
+                action="LOGIN",
+            ).exists()
+        )
+
+    def test_logout_creates_audit_record(self):
+        self.client.force_login(self.admin_user)
+
+        self.client.post(reverse("logout"))
+
+        self.assertTrue(
+            AuditRecord.objects.filter(
+                user=self.admin_user,
+                action="LOGOUT",
+            ).exists()
         )
 
 from django.conf import settings
