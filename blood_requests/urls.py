@@ -1,10 +1,10 @@
-
 from django.urls import path
 
 from .views import (
     allocate_request,
     issue_allocation,
     process_request,
+    track_request_status,
     recipient_list,
     recipient_detail,
     create_blood_request,
@@ -27,10 +27,19 @@ urlpatterns = [
         name="process-request",
     ),
     path(
+        "requests/<int:request_id>/status/",
+        track_request_status,
+        name="track-request-status",
+    ),
+    path(
         "requests/create/",
         create_blood_request,
         name="create-blood-request",
     ),
     path("recipients/", recipient_list, name="recipient-list"),
-    path("recipients/<int:recipient_id>/", recipient_detail, name="recipient-detail"),
+    path(
+        "recipients/<int:recipient_id>/",
+        recipient_detail,
+        name="recipient-detail",
+    ),
 ]
