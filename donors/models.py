@@ -38,6 +38,10 @@ class Donor(models.Model):
 
     class Meta:
         ordering = ["full_name", "id"]
+        indexes = [
+            models.Index(fields=["blood_group"]),
+            models.Index(fields=["is_eligible"]),
+        ]
 
     def __str__(self):
         return f"{self.full_name} ({self.blood_group})"
@@ -56,6 +60,9 @@ class Donation(models.Model):
 
     class Meta:
         ordering = ["-donation_date", "-id"]
+        indexes = [
+            models.Index(fields=["donation_date"]),
+        ]
 
     def __str__(self):
         return (
