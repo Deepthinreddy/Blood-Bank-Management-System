@@ -79,3 +79,16 @@ class BloodIssue(models.Model):
         on_delete=models.PROTECT,
     )
     issued_at = models.DateTimeField(auto_now_add=True)
+class Recipient(models.Model):
+    full_name = models.CharField(max_length=150)
+    identification_number = models.CharField(
+        max_length=50,
+        unique=True,
+    )
+    contact_number = models.CharField(max_length=20)
+    blood_group = models.CharField(max_length=3)
+    notes = models.TextField(blank=True)
+    registered_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.full_name
