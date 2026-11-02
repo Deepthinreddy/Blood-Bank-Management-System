@@ -1,15 +1,12 @@
-from django.shortcuts import render
-
-# Create your views here.
 
 from django.core.exceptions import ObjectDoesNotExist
-from .models import BloodRequest
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-
+from .models import BloodRequest
+from .serializers import BloodRequestSerializer
 from .services import (
     AllocationError,
     IssueError,
@@ -83,6 +80,7 @@ def issue_allocation(request, allocation_id):
         status=status.HTTP_200_OK,
     )
 
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def process_request(request, request_id):
@@ -114,6 +112,8 @@ def process_request(request, request_id):
         },
         status=status.HTTP_200_OK,
     )
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def track_request_status(request, request_id):
@@ -141,4 +141,28 @@ def track_request_status(request, request_id):
             "created_at": blood_request.created_at.isoformat(),
         },
         status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_blood_request(request):
+    if not (request.user.is_staff or request.user.is_superuser):
+        return Response(
+            {"detail": "Staff authorization required."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = BloodRequestSerializer(data=request.data)
+
+    if serializer.is_valid():
+        blood_request = serializer.save()
+        return Response(
+            BloodRequestSerializer(blood_request).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    return Response(
+        serializer.errors,
+        status=status.HTTP_400_BAD_REQUEST,
     )

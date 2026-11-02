@@ -1,4 +1,3 @@
-
 from django.urls import path
 
 from .views import (
@@ -6,6 +5,7 @@ from .views import (
     issue_allocation,
     process_request,
     track_request_status,
+    create_blood_request,
 )
 
 urlpatterns = [
@@ -28,5 +28,10 @@ urlpatterns = [
         "requests/<int:request_id>/status/",
         track_request_status,
         name="track-request-status",
+    ),
+    path(
+        "requests/create/",
+        create_blood_request,
+        name="create-blood-request",
     ),
 ]

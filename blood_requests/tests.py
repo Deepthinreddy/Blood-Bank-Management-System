@@ -1,17 +1,15 @@
-from django.test import TestCase
-
-# Create your tests here.
 
 from datetime import timedelta
 from unittest.mock import patch
-from rest_framework.test import APIClient
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from . import services
 from .models import BloodAllocation, BloodIssue, BloodRequest, BloodUnit
+from .serializers import BloodRequestSerializer
 from .services import (
     AllocationError,
     IssueError,
@@ -212,7 +210,7 @@ class BloodWorkflowTests(TestCase):
         )
         self.assertEqual(self.unit.status, BloodUnit.Status.AVAILABLE)
         self.assertEqual(BloodAllocation.objects.count(), 0)
-    
+
     def test_issue_failure_rolls_back_all_status_updates(self):
         self.unit.status = BloodUnit.Status.ALLOCATED
         self.unit.save(update_fields=["status"])
@@ -246,6 +244,7 @@ class BloodWorkflowTests(TestCase):
             self.request.status, BloodRequest.Status.ALLOCATED
         )
         self.assertEqual(BloodIssue.objects.count(), 0)
+
     def test_staff_can_approve_pending_request(self):
         self.request.status = BloodRequest.Status.PENDING
         self.request.save(update_fields=["status"])
@@ -343,3 +342,122 @@ class BloodWorkflowTests(TestCase):
         response = client.get("/api/requests/99999/status/")
 
         self.assertEqual(response.status_code, 404)
+
+    def test_valid_blood_request_data_is_accepted(self):
+        data = {
+            "recipient_name": "John Doe",
+            "blood_group": "A+",
+            "units_requested": 2,
+        }
+
+        serializer = BloodRequestSerializer(data=data)
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_empty_recipient_name_is_rejected(self):
+        data = {
+            "recipient_name": "   ",
+            "blood_group": "A+",
+            "units_requested": 1,
+        }
+
+        serializer = BloodRequestSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("recipient_name", serializer.errors)
+
+    def test_invalid_blood_group_is_rejected(self):
+        data = {
+            "recipient_name": "John Doe",
+            "blood_group": "XYZ",
+            "units_requested": 1,
+        }
+
+        serializer = BloodRequestSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("blood_group", serializer.errors)
+
+    def test_zero_units_are_rejected(self):
+        data = {
+            "recipient_name": "John Doe",
+            "blood_group": "A+",
+            "units_requested": 0,
+        }
+
+        serializer = BloodRequestSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("units_requested", serializer.errors)
+
+    def test_missing_required_fields_are_rejected(self):
+        serializer = BloodRequestSerializer(data={})
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("recipient_name", serializer.errors)
+        self.assertIn("blood_group", serializer.errors)
+        self.assertIn("units_requested", serializer.errors)
+
+    def test_staff_can_create_valid_blood_request(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        data = {
+            "recipient_name": "Jane Doe",
+            "blood_group": "O+",
+            "units_requested": 2,
+        }
+
+        response = client.post(
+            "/api/requests/create/",
+            data,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.data["recipient_name"], "Jane Doe"
+        )
+
+    def test_invalid_blood_request_returns_validation_errors(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        data = {
+            "recipient_name": " ",
+            "blood_group": "XYZ",
+            "units_requested": 0,
+        }
+
+        response = client.post(
+            "/api/requests/create/",
+            data,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("recipient_name", response.data)
+        self.assertIn("blood_group", response.data)
+        self.assertIn("units_requested", response.data)
+
+    def test_non_staff_cannot_create_blood_request(self):
+        user = get_user_model().objects.create_user(
+            username="ordinarycreator",
+            password="test-password",
+            is_staff=False,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.post(
+            "/api/requests/create/",
+            {
+                "recipient_name": "Jane Doe",
+                "blood_group": "O+",
+                "units_requested": 1,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)

@@ -1,8 +1,9 @@
 from datetime import date
 
+from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Donor
+from .models import Donor, Donation
 
 
 class DonorRegistrationSerializer(serializers.ModelSerializer):
@@ -16,14 +17,25 @@ class DonorRegistrationSerializer(serializers.ModelSerializer):
             "email",
             "address",
             "blood_group",
+            "is_eligible",
+            "eligibility_checked_at",
+            "eligibility_notes",
             "created_at",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = [
+            "id",
+            "is_eligible",
+            "eligibility_checked_at",
+            "eligibility_notes",
+            "created_at",
+        ]
 
     def validate_full_name(self, value):
         value = value.strip()
         if not value:
-            raise serializers.ValidationError("Full name is required.")
+            raise serializers.ValidationError(
+                "Full name is required."
+            )
         return value
 
     def validate_phone_number(self, value):
@@ -37,5 +49,89 @@ class DonorRegistrationSerializer(serializers.ModelSerializer):
 
     def validate_date_of_birth(self, value):
         if value > date.today():
-            raise serializers.ValidationError("Date of birth cannot be in the future.")
+            raise serializers.ValidationError(
+                "Date of birth cannot be in the future."
+            )
         return value
+
+
+class DonationSerializer(serializers.ModelSerializer):
+    donor_name = serializers.CharField(
+        source="donor.full_name",
+        read_only=True,
+    )
+    blood_group = serializers.CharField(
+        source="donor.blood_group",
+        read_only=True,
+    )
+
+    class Meta:
+        model = Donation
+        fields = [
+            "id",
+            "donor",
+            "donor_name",
+            "blood_group",
+            "donation_date",
+            "quantity_ml",
+            "notes",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def validate_donation_date(self, value):
+        if value > date.today():
+            raise serializers.ValidationError(
+                "Donation date cannot be in the future."
+            )
+        return value
+
+    def validate_quantity_ml(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                "Donation quantity must be greater than zero."
+            )
+        return value
+
+
+class DonorEligibilitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Donor
+        fields = [
+            "id",
+            "full_name",
+            "blood_group",
+            "is_eligible",
+            "eligibility_checked_at",
+            "eligibility_notes",
+        ]
+        read_only_fields = [
+            "id",
+            "full_name",
+            "blood_group",
+            "eligibility_checked_at",
+        ]
+
+    def validate_is_eligible(self, value):
+        if value is None:
+            raise serializers.ValidationError(
+                "An eligibility decision is required."
+            )
+        return value
+
+    def update(self, instance, validated_data):
+        instance.is_eligible = validated_data["is_eligible"]
+        instance.eligibility_notes = validated_data.get(
+            "eligibility_notes",
+            instance.eligibility_notes,
+        )
+        instance.eligibility_checked_at = timezone.now()
+
+        instance.save(
+            update_fields=[
+                "is_eligible",
+                "eligibility_notes",
+                "eligibility_checked_at",
+            ]
+        )
+        return instance

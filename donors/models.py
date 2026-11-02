@@ -17,7 +17,23 @@ class Donor(models.Model):
     phone_number = models.CharField(max_length=20)
     email = models.EmailField()
     address = models.CharField(max_length=300)
-    blood_group = models.CharField(max_length=3, choices=BloodGroup.choices)
+    blood_group = models.CharField(
+        max_length=3,
+        choices=BloodGroup.choices,
+    )
+
+    # Donor eligibility information
+    is_eligible = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+    )
+    eligibility_checked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+    eligibility_notes = models.TextField(blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -25,3 +41,24 @@ class Donor(models.Model):
 
     def __str__(self):
         return f"{self.full_name} ({self.blood_group})"
+
+
+class Donation(models.Model):
+    donor = models.ForeignKey(
+    Donor,
+    on_delete=models.PROTECT,
+    related_name="donation_history_records",
+)
+    donation_date = models.DateField()
+    quantity_ml = models.PositiveIntegerField()
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-donation_date", "-id"]
+
+    def __str__(self):
+        return (
+            f"Donation by {self.donor.full_name} "
+            f"on {self.donation_date}"
+        )
