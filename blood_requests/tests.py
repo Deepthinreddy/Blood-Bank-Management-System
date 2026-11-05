@@ -383,3 +383,250 @@ class BloodRequestFrontendTests(TestCase):
                 identification_number="FRONTEND-001"
             ).exists()
         )
+
+
+class BloodRequestServiceCoverageTests(TestCase):
+
+    def setUp(self):
+        self.staff = get_user_model().objects.create_user(
+            username="service_test_staff",
+            password="test-password",
+            is_staff=True,
+        )
+
+    def create_request(self, **kwargs):
+        defaults = {
+            "recipient_name": "Service Test Recipient",
+            "blood_group": "A+",
+            "units_requested": 1,
+            "status": BloodRequest.Status.APPROVED,
+        }
+        defaults.update(kwargs)
+        return BloodRequest.objects.create(**defaults)
+
+    def create_unit(self, **kwargs):
+        defaults = {
+            "blood_group": "A+",
+            "expires_on": timezone.localdate() + timedelta(days=10),
+            "status": BloodUnit.Status.AVAILABLE,
+        }
+        defaults.update(kwargs)
+        return BloodUnit.objects.create(**defaults)
+
+    def create_allocation(self, **kwargs):
+        blood_request = kwargs.pop(
+            "request",
+            self.create_request(),
+        )
+        unit = kwargs.pop("blood_unit", self.create_unit(
+            status=BloodUnit.Status.ALLOCATED,
+        ))
+        return BloodAllocation.objects.create(
+            request=blood_request,
+            blood_unit=unit,
+            **kwargs,
+        )
+
+    def test_allocate_rejects_non_approved_request(self):
+        blood_request = self.create_request(
+            status=BloodRequest.Status.PENDING,
+        )
+
+        with self.assertRaises(AllocationError):
+            allocate_blood(blood_request.pk)
+
+    def test_allocate_rejects_zero_requested_units(self):
+        blood_request = self.create_request(units_requested=0)
+
+        with self.assertRaises(AllocationError):
+            allocate_blood(blood_request.pk)
+
+    def test_allocate_rejects_missing_compatibility_rule(self):
+        blood_request = self.create_request()
+
+        with self.assertRaises(AllocationError):
+            allocate_blood(blood_request.pk)
+
+    def test_allocate_rejects_insufficient_stock(self):
+        blood_request = self.create_request(units_requested=2)
+        self.create_unit()
+
+        with patch.dict(
+            services.BLOOD_COMPATIBILITY,
+            {"A+": ["A+", "O+"]},
+        ):
+            with self.assertRaises(AllocationError):
+                allocate_blood(blood_request.pk)
+
+    def test_allocate_rejects_expired_or_unavailable_stock(self):
+        blood_request = self.create_request()
+
+        self.create_unit(
+            expires_on=timezone.localdate() - timedelta(days=1),
+        )
+        self.create_unit(
+            status=BloodUnit.Status.ALLOCATED,
+        )
+
+        with patch.dict(
+            services.BLOOD_COMPATIBILITY,
+            {"A+": ["A+"]},
+        ):
+            with self.assertRaises(AllocationError):
+                allocate_blood(blood_request.pk)
+
+    def test_allocate_successfully_allocates_compatible_units(self):
+        blood_request = self.create_request(units_requested=2)
+        first_unit = self.create_unit(
+            expires_on=timezone.localdate() + timedelta(days=5),
+        )
+        second_unit = self.create_unit(
+            expires_on=timezone.localdate() + timedelta(days=10),
+        )
+
+        with patch.dict(
+            services.BLOOD_COMPATIBILITY,
+            {"A+": ["A+", "O+"]},
+        ):
+            allocations = allocate_blood(blood_request.pk)
+
+        self.assertEqual(len(allocations), 2)
+
+        blood_request.refresh_from_db()
+        first_unit.refresh_from_db()
+        second_unit.refresh_from_db()
+
+        self.assertEqual(
+            blood_request.status,
+            BloodRequest.Status.ALLOCATED,
+        )
+        self.assertEqual(
+            first_unit.status,
+            BloodUnit.Status.ALLOCATED,
+        )
+        self.assertEqual(
+            second_unit.status,
+            BloodUnit.Status.ALLOCATED,
+        )
+
+    def test_issue_rejects_non_allocated_allocation(self):
+        allocation = self.create_allocation(
+            status=BloodAllocation.Status.CANCELLED,
+        )
+
+        with self.assertRaises(IssueError):
+            issue_blood(allocation.pk, self.staff)
+
+    def test_issue_rejects_unit_that_is_not_allocated(self):
+        unit = self.create_unit(
+            status=BloodUnit.Status.AVAILABLE,
+        )
+        allocation = self.create_allocation(blood_unit=unit)
+
+        with self.assertRaises(IssueError):
+            issue_blood(allocation.pk, self.staff)
+
+    def test_issue_rejects_expired_unit(self):
+        unit = self.create_unit(
+            status=BloodUnit.Status.ALLOCATED,
+            expires_on=timezone.localdate() - timedelta(days=1),
+        )
+        allocation = self.create_allocation(blood_unit=unit)
+
+        with self.assertRaises(IssueError):
+            issue_blood(allocation.pk, self.staff)
+
+    def test_issue_keeps_request_allocated_when_other_units_remain(self):
+        blood_request = self.create_request()
+
+        first_allocation = self.create_allocation(
+            request=blood_request,
+        )
+        self.create_allocation(request=blood_request)
+
+        issue = issue_blood(first_allocation.pk, self.staff)
+
+        first_allocation.refresh_from_db()
+        blood_request.refresh_from_db()
+
+        self.assertTrue(
+            BloodIssue.objects.filter(pk=issue.pk).exists()
+        )
+        self.assertEqual(
+            first_allocation.status,
+            BloodAllocation.Status.ISSUED,
+        )
+        self.assertEqual(
+            blood_request.status,
+            BloodRequest.Status.APPROVED,
+        )
+
+    def test_issue_fulfills_request_when_all_allocations_are_issued(self):
+        blood_request = self.create_request()
+        allocation = self.create_allocation(request=blood_request)
+
+        issue = issue_blood(allocation.pk, self.staff)
+
+        allocation.refresh_from_db()
+        blood_request.refresh_from_db()
+
+        self.assertTrue(
+            BloodIssue.objects.filter(pk=issue.pk).exists()
+        )
+        self.assertEqual(
+            allocation.status,
+            BloodAllocation.Status.ISSUED,
+        )
+        self.assertEqual(
+            blood_request.status,
+            BloodRequest.Status.FULFILLED,
+        )
+
+    def test_process_rejects_invalid_decision(self):
+        blood_request = self.create_request(
+            status=BloodRequest.Status.PENDING,
+        )
+
+        with self.assertRaises(RequestProcessingError):
+            process_blood_request(blood_request.pk, "INVALID")
+
+    def test_process_rejects_non_pending_request(self):
+        blood_request = self.create_request(
+            status=BloodRequest.Status.APPROVED,
+        )
+
+        with self.assertRaises(RequestProcessingError):
+            process_blood_request(
+                blood_request.pk,
+                BloodRequest.Status.REJECTED,
+            )
+
+    def test_process_approves_pending_request(self):
+        blood_request = self.create_request(
+            status=BloodRequest.Status.PENDING,
+        )
+
+        result = process_blood_request(
+            blood_request.pk,
+            BloodRequest.Status.APPROVED,
+        )
+
+        self.assertEqual(
+            result.status,
+            BloodRequest.Status.APPROVED,
+        )
+
+    def test_process_rejects_pending_request(self):
+        blood_request = self.create_request(
+            status=BloodRequest.Status.PENDING,
+        )
+
+        result = process_blood_request(
+            blood_request.pk,
+            BloodRequest.Status.REJECTED,
+        )
+
+        self.assertEqual(
+            result.status,
+            BloodRequest.Status.REJECTED,
+        )
